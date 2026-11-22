@@ -8,6 +8,8 @@
   --ink-strong: #66525a;
   --tan: #d9bfa3;
   --diary: #f1e6dc;
+  --lilac: #e7defa;
+  --lilac-strong: #b9a5e3;
   --pink: #f2a395;
   --rose: #e48a96;
   --line: #eadfd8;
@@ -15,9 +17,10 @@
 
   position: relative;
   overflow: hidden;
-  margin: -20px -16px 0;
-  padding: 16px 16px 24px;
-  min-height: calc(100dvh - 58px);
+  /* 抵銷 .content 的上下內距，讓背景一路鋪到畫面最底（tabbar 後面） */
+  margin: -20px -16px -80px;
+  padding: 16px 16px calc(78px + env(safe-area-inset-bottom));
+  min-height: 100dvh;
   background: #fff;
   color: var(--ink);
   font-family: "LXGW WenKai TC", "Nunito", system-ui, sans-serif;
@@ -28,9 +31,11 @@
 
 /* 背景 */
 .h-blobs { position: absolute; inset: 0; pointer-events: none; }
-.h-blob { position: absolute; top: 0; display: block; }
-.h-blob.coral { left: 0; width: 46%; fill: var(--coral); }
-.h-blob.yellow { right: 0; width: 42%; fill: var(--yellow); }
+.h-blob { position: absolute; display: block; }
+.h-blob.coral { top: 0; left: 0; width: 46%; fill: var(--coral); }
+.h-blob.yellow { top: 0; right: 0; width: 42%; fill: var(--yellow); }
+.h-blob.blue { bottom: 120px; right: 0; width: 22%; fill: #93e2f0; }
+.h-blob.green { bottom: 50px; left: 0; width: 55%; fill: #c6ecb2; }
 
 /* 標題列 */
 .h-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -42,6 +47,22 @@
   content: ""; position: absolute; left: -4px; right: 2px; bottom: 2px; height: 12px; z-index: -1;
   background: var(--coral); border-radius: 99px 40px 99px 30px; transform: rotate(-2deg);
 }
+/* 寵物切換 */
+.h-pet-switch {
+  display: flex; gap: 2px; padding: 3px;
+  background: #fff; border: 2px solid var(--ink); border-radius: 99px;
+}
+.h-pet-switch button {
+  border: none; border-radius: 99px; cursor: pointer; padding: 4px 14px;
+  background: transparent; font-size: 17px !important; color: var(--muted) !important;
+  transition: background .2s, color .2s;
+}
+.h-pet-switch button:first-child { font-family: "Great Vibes", cursive; font-size: 22px !important; padding-block: 1px; }
+.h-pet-switch button.on { background: var(--coral); color: var(--ink-strong) !important; }
+.history .sr-only {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+
 .h-month {
   display: flex; align-items: center; gap: 2px;
   background: rgba(255, 255, 255, .85); border-radius: 99px; padding: 2px 4px;
@@ -73,7 +94,7 @@
 .h-cell:nth-child(7n) { border-right: none; }
 .h-cell.empty { cursor: default; background: #fcfaf9; }
 .h-cell.has-diary { background: var(--diary); }
-.h-cell.selected { background: var(--coral); box-shadow: inset 0 0 0 2px var(--rose); }
+.h-cell.selected { background: var(--lilac); box-shadow: inset 0 0 0 2px var(--lilac-strong); }
 .h-num {
   position: absolute; top: 3px; left: 5px;
   font-family: "Nunito", sans-serif; font-size: 11px; font-weight: 700; color: var(--ink);
@@ -184,4 +205,132 @@
   min-height: 46px; padding: 10px; border: 1.5px solid var(--line); border-radius: 8px;
   text-align: center; color: var(--muted); font-size: 13px; line-height: 1.6;
 }
+/* 定期體檢 */
+.h-sub { font-size: 15px; font-weight: 700; color: var(--ink-strong); }
+.h-checkup { border: 1.5px solid var(--line); border-radius: 12px; padding: 10px; }
+.h-checkup-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.h-checkup-date { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 14px; color: var(--rose); }
+.h-checkup-place { font-size: 13px; color: var(--ink); }
+.h-checkup-body { display: flex; gap: 10px; align-items: flex-start; }
+.h-report-photo {
+  flex: none; width: 64px; height: 84px; border-radius: 8px;
+  background: #e6e2e1; display: grid; place-items: center;
+  font-size: 11px; color: #9a8f90; text-align: center;
+}
+.h-ai { flex: 1; min-width: 0; background: var(--coral-soft); border-radius: 10px; padding: 7px 10px 8px; }
+.h-ai-tag { font-size: 12px; font-weight: 700; color: var(--rose); margin-bottom: 3px; }
+.h-ai ul { padding-left: 1.1em; display: flex; flex-direction: column; gap: 2px; }
+.h-ai li { font-size: 12.5px; line-height: 1.5; color: var(--ink-strong); }
+.h-ai li::marker { color: var(--rose); }
+.h-ai-note { font-size: 11px; color: var(--muted); text-align: right; }
+
+/* 疫苗接種 */
+.h-vax { list-style: none; display: flex; flex-direction: column; }
+.h-vax li {
+  display: grid; grid-template-columns: auto auto 1fr; align-items: center; column-gap: 8px; row-gap: 2px;
+  padding: 7px 2px; border-bottom: 1px dashed var(--line);
+}
+.h-vax li:last-child { border-bottom: none; }
+.h-vax-date { font-family: "Nunito", sans-serif; font-weight: 700; font-size: 13px; color: var(--ink-strong); }
+.h-vax-name { font-size: 12px; font-weight: 700; border-radius: 99px; padding: 1px 9px; color: var(--ink-strong); }
+.h-vax-name.rabies { background: var(--coral); }
+.h-vax-name.combo { background: var(--yellow); }
+.h-vax-place { font-size: 12.5px; color: var(--ink); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-vax-note { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+
+img.h-report-photo { object-fit: cover; }
+
+/* 看診記錄 */
+.h-visit-reason { display: flex; align-items: center; gap: 6px; margin: -2px 0 8px; font-size: 15px; font-weight: 700; color: var(--ink-strong); }
+.h-visit-tag { font-size: 11px; font-weight: 700; color: var(--gold); background: #fff6d6; border-radius: 99px; padding: 1px 8px; }
+.h-visit-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.h-reminders { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.h-reminders li { display: flex; gap: 5px; font-size: 12.5px; line-height: 1.45; color: var(--ink-strong); }
+
+/* 新增表單 */
+.h-add-block { align-self: stretch; text-align: center; }
+.h-card-form { border: 1.5px dashed var(--rose); border-radius: 12px; padding: 10px; background: #fffaf9; }
+.h-form select {
+  flex: 1; min-width: 0; border: 1.5px solid var(--line); border-radius: 10px; padding: 6px 8px; outline: none;
+  font: inherit; font-size: 14px; color: var(--ink-strong); background: #fffaf8;
+}
+.h-form input[type="date"] { flex: none; width: 140px; font-family: "Nunito", sans-serif; }
+.h-form .h-form-row textarea { flex: 1; }
+.h-form-hint { flex: 1; align-self: center; font-size: 12px; color: var(--ink); line-height: 1.5; }
+.h-photo-pick {
+  flex: none; width: 64px; height: 84px; border-radius: 8px; overflow: hidden; cursor: pointer;
+  border: 1.5px dashed var(--muted); background: #f3efee;
+  display: grid; place-items: center; text-align: center; font-size: 11px; line-height: 1.4; color: var(--ink);
+}
+.h-photo-pick img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 生育、結紮 */
+.h-yn { display: inline-flex; gap: 4px; }
+.h-yn button { cursor: pointer; background: #fff; }
+.h-yn button:disabled { cursor: default; opacity: .5; }
+.h-yn span, .h-yn button { font-family: "Nunito", sans-serif; font-size: 12px; font-weight: 700; padding: 0 9px; border-radius: 99px; color: var(--muted); border: 1.5px solid var(--line); }
+.h-yn .on { color: var(--ink-strong); background: var(--coral); border-color: var(--coral); }
+.h-gap { margin-top: 4px; }
+.h-kittens { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13px; color: var(--ink-strong); }
+.h-kittens b { font-family: "Nunito", sans-serif; font-size: 15px; }
+.h-note { font-size: 13px; line-height: 1.6; color: var(--ink-strong); background: #fbf7f5; border-radius: 8px; padding: 6px 9px; }
+
+/* 其他 */
+.h-others { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.h-others li { display: flex; gap: 8px; align-items: baseline; font-size: 13px; line-height: 1.55; color: var(--ink-strong); }
+.h-other-label {
+  flex: none; font-size: 12px; font-weight: 700; color: var(--ink-strong);
+  background: var(--coral-soft); border-radius: 99px; padding: 0 9px;
+}
+
+/* 傷病史 & 手術史 */
+.h-injury-title { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: var(--ink-strong); }
+.h-injury-type { font-size: 11px; font-weight: 700; border-radius: 99px; padding: 1px 8px; color: var(--ink-strong); }
+.h-injury-type.t-手術 { background: var(--coral); }
+.h-injury-type.t-傷病 { background: var(--yellow); }
+.h-group { display: flex; flex-direction: column; gap: 8px; }
+.h-injury-meta { display: flex; justify-content: space-between; gap: 8px; margin: -4px 0 6px; }
+.h-injury-dl { margin-bottom: 8px; }
+.h-injury-dl dt { font-size: 12px; font-weight: 700; color: var(--gold); margin-top: 4px; }
+.h-injury-dl dd { font-size: 13px; line-height: 1.6; color: var(--ink-strong); }
+
+/* 用藥 */
+.h-sub-sm { font-size: 13px; font-weight: 700; color: var(--ink); margin-top: 2px; }
+.h-small { font-size: 12px; }
+.h-med { border: 1.5px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+.h-med.ended { background: #fbf8f7; }
+.h-med.ended .h-med-name { color: var(--ink); }
+.h-med-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.h-med-name { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: var(--ink-strong); }
+.h-med-ended { font-size: 11px; font-weight: 700; color: var(--ink); background: #eee7e4; border-radius: 99px; padding: 0 8px; }
+.h-med-freq { font-family: "Nunito", "LXGW WenKai TC", sans-serif; font-size: 13px; font-weight: 700; color: var(--rose); margin-top: 2px; }
+.h-med-note { font-size: 13px; line-height: 1.55; color: var(--ink-strong); margin-top: 2px; }
+.h-remind { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.h-remind-label { font-size: 12px; color: var(--ink); }
+.h-freq-row { align-items: center; }
+.h-freq-row select { flex: none; width: 76px; }
+.h-form .h-freq-row input[type="number"] { width: 58px; flex: none; font-family: "Nunito", sans-serif; }
+.h-freq-row span { font-size: 13px; color: var(--ink); }
+.h-center { align-items: center; }
+.h-toast {
+  position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); z-index: 45;
+  max-width: calc(100% - 32px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: var(--ink-strong); color: #fff; font-size: 13px; padding: 6px 14px; border-radius: 99px;
+}
+
+/* 回到最上方（浮在 tabbar 上方、app 寬度內的右下角） */
+.history > .h-to-top {
+  position: fixed; z-index: 45;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  right: max(16px, calc(50% - 215px + 16px));
+  width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
+  display: grid; place-items: center;
+  background: var(--coral); box-shadow: 0 4px 12px rgba(102, 82, 90, .25);
+  opacity: 0; transform: translateY(10px); pointer-events: none;
+  transition: opacity .2s, transform .2s;
+}
+.history > .h-to-top.show { opacity: 1; transform: none; pointer-events: auto; }
+.h-to-top:active { background: var(--pink); }
+.h-to-top svg { width: 22px; height: 22px; fill: none; stroke: var(--ink-strong); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
 .h-todo { padding: 8px 0; text-align: center; color: var(--muted); font-size: 13px; }

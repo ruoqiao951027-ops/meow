@@ -6,7 +6,9 @@ body { font-family: system-ui, "Noto Sans TC", sans-serif; background: #f2efe9; 
 
 .tabbar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  z-index: 40; /* 蓋在頁面內容之上；確認視窗等彈窗用 50 再蓋過它 */
   width: 100%; max-width: 430px; display: flex;
+  padding-bottom: env(safe-area-inset-bottom);
   background: #fff; border-top: 1px solid #eee;
 }
 .tab {
