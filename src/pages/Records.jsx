@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { PETS, useCurrentPet } from '../petStore.js'
+import { VoiceButton } from '../VoiceInput.jsx'
+import { parseDaily } from '../voiceParse.js'
 import './Records.css'
 
 const todayKey = () => new Date().toISOString().slice(0, 10)
@@ -336,6 +338,21 @@ function PetSheet({ pet, onConfirm, onReport }) {
       action: () => setS((p) => ({ ...p, snack: p.snack + 1 })),
     })
 
+  // 語音解析結果填入：次數 0 表示「沒有」，會取消標記
+  const applyVoice = ({ obs, ...rest }) =>
+    setS((p) => {
+      const next = { ...p, ...rest }
+      if (obs) {
+        next.obs = { ...p.obs }
+        next.obsCount = { ...p.obsCount }
+        for (const [k, n] of Object.entries(obs)) {
+          next.obs[k] = n > 0
+          next.obsCount[k] = n > 0 ? String(n) : ''
+        }
+      }
+      return next
+    })
+
   const addObs = () => {
     const t = newObs.trim()
     if (!t || t in s.obs) return
@@ -425,9 +442,21 @@ function PetSheet({ pet, onConfirm, onReport }) {
         {/* 健康 */}
         <div className="health">
           <div className="health-left">
-            <h2 className="health-title">
-              今天的<span className="health-name">{pet.name}</span>......
-            </h2>
+            <div className="health-head">
+              <h2 className="health-title">
+                今天的<span className="health-name">{pet.name}</span>......
+              </h2>
+              <VoiceButton
+                title={`用說的記錄今天的${pet.name}`}
+                examples={[
+                  pet.species === 'dog' ? '今天吐了兩次，吃藥一次，體重八點四公斤' : '吐了一次，咳嗽兩次，體重四點二公斤',
+                  '擦藥兩次，拉肚子一次，心情普通',
+                  '今天沒有吐，心情很好',
+                ]}
+                parse={(t) => parseDaily(t, Object.keys(s.obs))}
+                onApply={applyVoice}
+              />
+            </div>
             <div className="line-item">
               <span>內服藥</span>
               <Counter value={s.oral} onChange={(v) => set({ oral: v })} />

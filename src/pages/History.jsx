@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { PETS, useCurrentPet } from '../petStore.js'
 import { DOG } from './historyDogData.js'
+import { VoiceButton } from '../VoiceInput.jsx'
+import { parseDisease, parseInjury, parseMed, parseOther, parseVaccine, parseVisit } from '../voiceParse.js'
 import './History.css'
 
 const PetContext = createContext(PETS[0])
@@ -212,6 +214,16 @@ function FormActions({ onCancel }) {
   )
 }
 
+// 表單最上方的「用說的填寫」：解析出的欄位直接合併進表單
+function FormVoice({ title, examples, parse, onApply }) {
+  return (
+    <div className="h-voice-row">
+      <span>用說的填寫</span>
+      <VoiceButton title={title} examples={examples} parse={parse} onApply={onApply} />
+    </div>
+  )
+}
+
 function AiBox({ items, title = '✦ AI 判讀建議' }) {
   return (
     <div className="h-ai">
@@ -281,6 +293,16 @@ function CheckupVaccine() {
       <AddToggle label="新增接種紀錄" open={vxForm} onOpen={() => setVxForm({ date: '', name: '狂犬病', custom: '', place: '', note: '' })} />
       {vxForm && (
         <form className="h-form h-card-form" onSubmit={saveVaccine}>
+          <FormVoice
+            title="用說的新增接種紀錄"
+            examples={
+              pet.species === 'dog'
+                ? ['昨天在汪汪町動物醫院打十合一，打完有點沒精神', '9月13號打狂犬病疫苗，地點好鄰居動物醫院']
+                : ['昨天在毛孩森林動物醫院打五合一，回家睡了一整天', '9月13號打狂犬病疫苗，地點小貓掌動物醫院']
+            }
+            parse={(t) => parseVaccine(t, vaccineTypes)}
+            onApply={(p) => setVxForm((f) => ({ ...f, ...p }))}
+          />
           <div className="h-form-row">
             <input type="date" value={vxForm.date} onChange={(e) => setVxForm({ ...vxForm, date: e.target.value })} aria-label="接種日期" required />
             <select value={vxForm.name} onChange={(e) => setVxForm({ ...vxForm, name: e.target.value })} aria-label="疫苗種類">
@@ -340,6 +362,15 @@ function Visits() {
       <AddToggle label="新增看診紀錄" open={form} onOpen={() => setForm({ date: '', hospital: '', reason: '', photo: null, reminders: '' })} />
       {form && (
         <form className="h-form h-card-form" onSubmit={save}>
+          <FormVoice
+            title="用說的新增看診紀錄"
+            examples={[
+              '今天在好鄰居動物醫院看診，一直抓耳朵，耳朵藥水一天兩次，這週不要洗澡',
+              '前天去毛孩森林動物醫院回診，止吐藥每天一次，三天後回診',
+            ]}
+            parse={parseVisit}
+            onApply={(p) => setForm((f) => ({ ...f, ...p }))}
+          />
           <div className="h-form-row">
             <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} aria-label="看診日期" required />
             <input value={form.hospital} onChange={(e) => setForm({ ...form, hospital: e.target.value })} placeholder="寵物醫院" aria-label="寵物醫院" required />
@@ -533,6 +564,15 @@ function MedicalHistory({ onAddReminders, onRemoveReminders }) {
       <AddToggle label="新增疾病紀錄" open={dForm} onOpen={() => setDForm({ name: '', date: '', place: '', desc: '', impact: '' })} />
       {dForm && (
         <form className="h-form h-card-form" onSubmit={saveDisease}>
+          <FormVoice
+            title="用說的新增疾病紀錄"
+            examples={[
+              '11月3號在好鄰居動物醫院看感冒，打了一針還開了藥，之後要注意保暖',
+              '皮膚過敏，換季就一直抓，換了低敏飼料，以後散步回來要擦腳',
+            ]}
+            parse={parseDisease}
+            onApply={(p) => setDForm((f) => ({ ...f, ...p }))}
+          />
           <input value={dForm.name} onChange={(e) => setDForm({ ...dForm, name: e.target.value })} placeholder="生什麼病？例如：感冒、過敏" aria-label="病名" required />
           <div className="h-form-row">
             <input type="date" value={dForm.date} onChange={(e) => setDForm({ ...dForm, date: e.target.value })} aria-label="日期（選填）" />
@@ -571,6 +611,15 @@ function MedicalHistory({ onAddReminders, onRemoveReminders }) {
       />
       {mForm && (
         <form className="h-form h-card-form" onSubmit={saveMed}>
+          <FormVoice
+            title="用說的新增用藥"
+            examples={[
+              '止癢藥一天兩次，吃七天，早上九點，要提醒',
+              '每個月一次心絲蟲預防藥，晚上八點，記得拌在罐頭裡',
+            ]}
+            parse={parseMed}
+            onApply={(p) => setMForm((f) => ({ ...f, ...p }))}
+          />
           <div className="h-form-row">
             <select value={mForm.kind} onChange={(e) => setMForm({ ...mForm, kind: e.target.value })} aria-label="用藥類型">
               <option value="fixed">固定用藥</option>
@@ -725,6 +774,12 @@ function Others() {
       <AddToggle label="新增其他紀錄" open={form} onOpen={() => setForm({ label: '', text: '' })} />
       {form && (
         <form className="h-form h-card-form" onSubmit={save}>
+          <FormVoice
+            title="用說的新增其他紀錄"
+            examples={['很怕吸塵器的聲音，一開就躲起來', '有保寵物保險，每年三月要續保']}
+            parse={parseOther}
+            onApply={(p) => setForm((f) => ({ ...f, ...p }))}
+          />
           <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="標籤，例如：晶片、個性、習慣" aria-label="標籤" />
           <textarea rows={2} value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} placeholder="想記下來的事…" aria-label="內容" required />
           <FormActions onCancel={() => setForm(null)} />
@@ -842,6 +897,15 @@ function InjurySurgery() {
       />
       {form && (
         <form className="h-form h-card-form" onSubmit={save}>
+          <FormVoice
+            title="用說的新增傷病 / 手術紀錄"
+            examples={[
+              '昨天在公園右前腳割傷，去汪汪町動物醫院縫了兩針，之後要記得戴頭套',
+              '上個月5號在好鄰居動物醫院洗牙，順便拔了一顆牙，以後要每天刷牙',
+            ]}
+            parse={parseInjury}
+            onApply={(p) => setForm((f) => ({ ...f, ...p }))}
+          />
           <div className="h-form-row">
             <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} aria-label="類型">
               <option>傷病</option>

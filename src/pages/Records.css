@@ -248,6 +248,8 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .health-name { margin: 0 2px; }
+.health-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.health-head .health-title { min-width: 0; margin: 0; }
 .label-3 { width: 3em; text-align: justify; text-align-last: justify; }
 .line-item { display: flex; align-items: center; gap: 4px; font-size: 14px; color: var(--ink-strong); padding-left: 6px; }
 .weight input {
