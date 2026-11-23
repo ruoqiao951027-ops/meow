@@ -7,6 +7,9 @@ export const PETS = [
   { id: 'mochi', name: '年糕', species: 'dog', birthday: '2022-09-15', photo: null, meals: 2, storage: 'meow-records-mochi' },
 ]
 
+// 紀錄頁各清單的存檔 key：第一隻沿用原本的 key，舊資料不會遺失；其他寵物加後綴（v2：改用狗狗假資料）
+export const historyKey = (pet, base) => (pet.id === PETS[0].id ? base : `${base}-${pet.id}-v2`)
+
 // 目前選中的寵物：日常頁、紀錄頁共用，切換其中一邊另一邊也會跟著變
 const KEY = 'meow-current-pet'
 const listeners = new Set()
