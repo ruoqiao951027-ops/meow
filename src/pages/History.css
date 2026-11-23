@@ -250,6 +250,7 @@ img.h-report-photo { object-fit: cover; }
 /* 新增表單 */
 .h-add-block { align-self: stretch; text-align: center; }
 .h-card-form { border: 1.5px dashed var(--rose); border-radius: 12px; padding: 10px; background: #fffaf9; }
+.h-voice-row { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 12px; color: var(--rose); margin-bottom: -2px; }
 .h-form select {
   flex: 1; min-width: 0; border: 1.5px solid var(--line); border-radius: 10px; padding: 6px 8px; outline: none;
   font: inherit; font-size: 14px; color: var(--ink-strong); background: #fffaf8;
