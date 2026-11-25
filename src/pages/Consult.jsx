@@ -3,7 +3,80 @@ import { createPortal } from 'react-dom'
 import { PETS, useCurrentPet } from '../petStore.js'
 import { buildPetContext, latestWeight } from '../petContext.js'
 import { VoiceButton } from '../VoiceInput.jsx'
+import { candidatesText, matchFoods } from '../foodMatch.js'
+import { FLAG_LABEL, PRODUCTS, TYPE_LABEL, feedingText, findProduct, nutritionText, productUrl, rxLabel, speciesLabel } from '../data/royalCanin.js'
 import './Consult.css'
+
+// AI 回答最後一行「推薦商品：AN24、DR25」→ 拆出來顯示成商品卡片
+function splitProducts(text) {
+  const lines = text.split('\n')
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const m = lines[i].replace(/\*/g, '').trim().match(/^推薦商品[:：]\s*(.*)$/)
+    if (!m) continue
+    const codes = m[1].split(/[、,，\s]+/).filter((c) => c && findProduct(c))
+    return { body: [...lines.slice(0, i), ...lines.slice(i + 1)].join('\n'), codes: [...new Set(codes)] }
+  }
+  return { body: text, codes: [] }
+}
+
+const TYPE_ICON = { d: '🥣', w: '🍲', c: '🥫', l: '🍼' }
+
+function ProductImage({ p }) {
+  const [broken, setBroken] = useState(false)
+  const src = p.variants.find((v) => v.image)?.image
+  if (!src || broken) return <span className="c-prod-icon" aria-hidden="true">{TYPE_ICON[p.type]}</span>
+  return <img className="c-prod-img" src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+}
+
+function ProductCard({ code }) {
+  const p = findProduct(code)
+  if (!p) return null
+  return (
+    <div className="c-prod">
+      <div className="c-prod-head">
+        <ProductImage p={p} />
+        <div className="c-prod-title">
+          <p className="c-prod-name">{p.name}</p>
+          <p className="c-prod-meta">
+            {p.code}・{speciesLabel(p.species)}・{TYPE_LABEL[p.type]}
+            {p.kcal ? `・${p.kcal} kcal/kg` : ''}
+          </p>
+        </div>
+        <span className={`c-prod-rx rx-${p.rx}`}>{rxLabel(p.rx)}</span>
+      </div>
+      {p.tags.length > 0 && (
+        <div className="c-prod-tags">
+          {p.tags.map((t) => <span key={t}>{t}</span>)}
+        </div>
+      )}
+      <div className="c-prod-buy">
+        {p.variants.map((v) =>
+          v.soldOut ? (
+            <span key={v.id} className="c-prod-size is-out">{v.pack} 已售完</span>
+          ) : (
+            <a key={v.id} className="c-prod-size" href={v.url || productUrl(v.id)} target="_blank" rel="noopener noreferrer">
+              {v.pack}・NT${v.price.toLocaleString()} ↗
+            </a>
+          ),
+        )}
+      </div>
+      {p.rx !== 0 && <p className="c-prod-note">處方相關商品，請先經獸醫師評估；此通路為合作動物醫院限定。</p>}
+    </div>
+  )
+}
+
+// 份量計算：選了皇家商品就自動帶入熱量與營養資料
+function productSummary(p) {
+  const flags = [...p.flags].filter((f) => FLAG_LABEL[f]).map((f) => FLAG_LABEL[f]).join('、')
+  return [
+    `營養分析：${nutritionText(p)}`,
+    `成分含：${flags}`,
+    `功能：${p.tags.join('、') || '一般營養'}；${rxLabel(p.rx)}；適用：${p.stageText}`,
+    p.ingredients && `成分表：${p.ingredients}`,
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
 
 const storeKey = (pet) => `meow-consult-${pet.id}`
 let nextId = Date.now()
@@ -100,6 +173,20 @@ function MdText({ text }) {
   return out
 }
 
+function AssistantBody({ text }) {
+  const { body, codes } = splitProducts(text)
+  return (
+    <>
+      <MdText text={body} />
+      {codes.length > 0 && (
+        <div className="c-prods">
+          {codes.map((c) => <ProductCard key={c} code={c} />)}
+        </div>
+      )}
+    </>
+  )
+}
+
 // ---------- 對 /api/consult 送出並逐字接收 ----------
 async function streamConsult({ messages, petContext, signal, onText }) {
   const res = await fetch('/api/consult', {
@@ -141,7 +228,7 @@ function FeatureTiles({ onFood, onPortion, disabled }) {
       <button type="button" className="c-tile t-coral" onClick={onFood} disabled={disabled}>
         <span className="c-tile-icon" aria-hidden="true">🥣</span>
         <span className="c-tile-title">飼料推薦</span>
-        <span className="c-tile-sub">依身體狀況挑飼料</span>
+        <span className="c-tile-sub">依紀錄推薦皇家飼料</span>
       </button>
       <button type="button" className="c-tile t-yellow" onClick={onPortion} disabled={disabled}>
         <span className="c-tile-icon" aria-hidden="true">⚖️</span>
@@ -161,6 +248,7 @@ function FeatureTiles({ onFood, onPortion, disabled }) {
 function PortionSheet({ pet, onSubmit, onClose }) {
   const [f, setF] = useState(() => ({
     food: '',
+    code: '', // 選了皇家商品時，送出會附上官方餵食表
     ingredients: '',
     kcal: '',
     weight: String(latestWeight(pet) || ''),
@@ -194,7 +282,7 @@ function PortionSheet({ pet, onSubmit, onClose }) {
     }
   }
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     if (!f.food.trim() && !f.ingredients.trim() && f.photos.length === 0) {
       setErr('請至少填飼料名稱、成分，或上傳包裝照片')
@@ -211,7 +299,22 @@ function PortionSheet({ pet, onSubmit, onClose }) {
       `一天餵 ${pet.meals} 餐`,
       f.photos.length > 0 && `（附上 ${f.photos.length} 張包裝照片）`,
     ].filter(Boolean)
-    onSubmit(lines.join('\n'), f.photos)
+    let hidden = ''
+    const p = f.code && findProduct(f.code)
+    if (p) {
+      try {
+        const table = await feedingText(p.code, Number(f.weight) || null)
+        hidden = [
+          p.feeding && `【官方餵食建議摘要】${p.code}：${p.feeding}`,
+          table && `【官方餵食表】${p.code}（皇家官網，體重最接近的列）：\n${table}`,
+        ]
+          .filter(Boolean)
+          .join('\n')
+      } catch {
+        // 餵食表載入失敗就只用公式計算
+      }
+    }
+    onSubmit(lines.join('\n'), f.photos, hidden)
   }
 
   // 放到 body 底下，浮在整個畫面（含 tabbar）上面，不受對話頁版面影響
@@ -222,8 +325,31 @@ function PortionSheet({ pet, onSubmit, onClose }) {
         <h2 className="c-modal-title">⚖️ 份量計算</h2>
         <p className="c-sheet-hint">輸入 {pet.name} 正在吃或想試的飼料，AI 會分析成分並算出每餐份量。</p>
         <label className="c-field">
+          <span>從皇家商品選擇（選填，會自動帶入熱量與成分）</span>
+          <select
+            value=""
+            onChange={(e) => {
+              const p = findProduct(e.target.value)
+              if (!p) return
+              set({
+                code: p.code,
+                food: `${p.code} ${speciesLabel(p.species)} ${p.name}（${TYPE_LABEL[p.type]}）`,
+                kcal: p.kcal ? `${p.kcal} kcal/kg` : '',
+                ingredients: productSummary(p),
+              })
+            }}
+          >
+            <option value="">— 選擇商品 —</option>
+            {PRODUCTS.filter((p) => (p.species === pet.species || p.species === 'both') && p.type !== 'l').map((p) => (
+              <option key={p.code} value={p.code}>
+                {p.code} {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="c-field">
           <span>飼料名稱</span>
-          <input value={f.food} onChange={(e) => set({ food: e.target.value })} placeholder="例如：室內成貓乾糧" />
+          <input value={f.food} onChange={(e) => set({ food: e.target.value, code: '' })} placeholder="例如：室內成貓乾糧" />
         </label>
         <label className="c-field">
           <span>成分 / 營養標示（選填）</span>
@@ -329,10 +455,11 @@ function ConsultChat({ pet, petIdx, onSwitchPet }) {
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
-  const send = async (text, imgs = []) => {
+  // hidden：送給 AI 但不顯示在對話裡的補充資料（例如候選商品清單）
+  const send = async (text, imgs = [], hidden = '') => {
     const t = text.trim()
     if ((!t && imgs.length === 0) || busy) return
-    const userMsg = { id: uid(), role: 'user', text: t, images: imgs }
+    const userMsg = { id: uid(), role: 'user', text: t, images: imgs, ...(hidden && { hidden }) }
     const aid = uid()
     const history = [...messages, userMsg]
     setMessages([...history, { id: aid, role: 'assistant', text: '', pending: true }])
@@ -344,7 +471,11 @@ function ConsultChat({ pet, petIdx, onSwitchPet }) {
     abortRef.current = ctrl
     const payload = history
       .filter((m) => !m.error && (m.text || m.images?.length))
-      .map((m) => ({ role: m.role, text: m.text, images: (m.images || []).map(toApiImage) }))
+      .map((m) => ({
+        role: m.role,
+        text: m.hidden ? `${m.text}\n\n${m.hidden}` : m.text,
+        images: (m.images || []).map(toApiImage),
+      }))
 
     const patch = (fn) => setMessages((list) => list.map((m) => (m.id === aid ? fn(m) : m)))
     try {
@@ -376,8 +507,14 @@ function ConsultChat({ pet, petIdx, onSwitchPet }) {
     setMessages([])
   }
 
-  const foodRecommend = () =>
-    send(`【飼料推薦】請根據${pet.name}目前的身體狀況和紀錄，推薦適合的飼料種類、需要的特殊功能，以及要找和要避開的成分。`)
+  const foodRecommend = () => {
+    const matched = matchFoods(pet, buildPetContext(pet), Number(latestWeight(pet)) || null)
+    send(
+      `【飼料推薦】請根據${pet.name}目前的身體狀況和紀錄，推薦適合的飼料。`,
+      [],
+      candidatesText(pet, matched),
+    )
+  }
 
   return (
     <div className="consult">
@@ -445,7 +582,7 @@ function ConsultChat({ pet, petIdx, onSwitchPet }) {
                 ) : m.error ? (
                   <p>⚠️ {m.text}</p>
                 ) : (
-                  <MdText text={m.text} />
+                  <AssistantBody text={m.text} />
                 )}
               </div>
             </div>
@@ -517,9 +654,9 @@ function ConsultChat({ pet, petIdx, onSwitchPet }) {
         <PortionSheet
           pet={pet}
           onClose={closePortion}
-          onSubmit={(text, photos) => {
+          onSubmit={(text, photos, hidden) => {
             setPortion(false)
-            send(text, photos)
+            send(text, photos, hidden)
           }}
         />
       )}
