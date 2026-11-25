@@ -1,15 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { PETS, useCurrentPet } from '../petStore.js'
+import { VoiceButton } from '../VoiceInput.jsx'
+import { parseDaily } from '../voiceParse.js'
 import './Records.css'
 
 const todayKey = () => new Date().toISOString().slice(0, 10)
-const STORAGE_KEY = `meow-records-${todayKey()}`
-
-// 假資料：正式版由「設定」分頁事先輸入後帶入
-const PET = {
-  name: 'Stacey',
-  birthday: '2020-11-14',
-  photo: '/stacey.webp',
-}
 
 // 跑馬燈訊息，每 5 秒往左換下一則
 const ANNOUNCEMENTS = [
@@ -22,7 +17,7 @@ const ANNOUNCEMENTS = [
 
 const initial = {
   mood: 0,
-  meals: [false, false, false],
+  meals: [],
   snack: 0,
   oral: 0,
   topical: 0,
@@ -35,27 +30,32 @@ const initial = {
 const weather = { rain: 30, low: 20, high: 25, walk: '14:00 ~ 17:00', note: '趕快帶我去散步！晚上要下雨了 ><' }
 
 const MEAL_NAMES = ['第一餐', '第二餐', '第三餐']
-const ZH_NUM = ['一', '二', '三']
 
-function loadState() {
+const storageKeyOf = (pet) => `${pet.storage}-${todayKey()}`
+
+function loadState(pet) {
+  const fresh = { ...initial, meals: Array(pet.meals).fill(false) }
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY))
-    if (!saved) return initial
+    const saved = JSON.parse(localStorage.getItem(storageKeyOf(pet)))
+    if (!saved) return fresh
     // obs 另外合併，舊資料也能補上新的預設觀察項目
     const obs = { ...initial.obs, ...saved.obs }
     // 已移除的預設項目：沒用過就從舊資料拿掉
     if (obs.掉毛 === false && !saved.obsCount?.掉毛) delete obs.掉毛
-    return { ...initial, ...saved, obs }
+    // 餐數以寵物設定為準
+    const meals = Array.from({ length: pet.meals }, (_, i) => Boolean(saved.meals?.[i]))
+    return { ...fresh, ...saved, obs, meals }
   } catch {
-    return initial
+    return fresh
   }
 }
 
-function stageOf(birthday) {
+function stageOf(birthday, species) {
   const years = (Date.now() - new Date(birthday)) / (365.25 * 864e5)
-  if (years < 1) return '幼貓'
-  if (years < 7) return '成貓'
-  return '老貓'
+  const animal = species === 'dog' ? '犬' : '貓'
+  if (years < 1) return `幼${animal}`
+  if (years < 7) return `成${animal}`
+  return `老${animal}`
 }
 
 // 狗腳印：橢圓腳趾分得較開
@@ -101,11 +101,12 @@ function Counter({ value, onChange }) {
 }
 
 // 不可復原的操作前再確認一次
-function ConfirmDialog({ message, onOk, onCancel }) {
+function ConfirmDialog({ message, species, onOk, onCancel }) {
+  const Paw = species === 'dog' ? DogPaw : CatPaw
   return (
     <div className="confirm-backdrop" onClick={onCancel}>
       <div className="confirm" role="alertdialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-        <CatPaw className="confirm-paw" />
+        <Paw className="confirm-paw" />
         <p className="confirm-msg">{message}</p>
         <button type="button" className="confirm-ok" onClick={onOk} autoFocus>確認</button>
       </div>
@@ -114,14 +115,17 @@ function ConfirmDialog({ message, onOk, onCancel }) {
 }
 
 // ---------- 當月匯表（假資料） ----------
-function buildMonthlyFake() {
+function buildMonthlyFake(pet) {
   const now = new Date()
   const year = now.getFullYear()
   const month = now.getMonth()
   const today = now.getDate()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const isDog = pet.species === 'dog'
   // 每 2~3 天量一次體重，緩慢波動
-  const base = [4.62, 4.6, 4.65, 4.58, 4.55, 4.6, 4.57, 4.52, 4.56, 4.5, 4.53, 4.48]
+  const catBase = [4.62, 4.6, 4.65, 4.58, 4.55, 4.6, 4.57, 4.52, 4.56, 4.5, 4.53, 4.48]
+  const dogBase = [8.1, 8.15, 8.12, 8.2, 8.25, 8.22, 8.3, 8.28, 8.35, 8.32, 8.4, 8.38]
+  const base = isDog ? dogBase : catBase
   const weights = []
   for (let d = 1, i = 0; d <= today; d += i % 2 ? 3 : 2, i++) {
     weights.push({ day: d, kg: base[i % base.length] })
@@ -131,10 +135,12 @@ function buildMonthlyFake() {
     month: month + 1,
     today,
     daysInMonth,
-    snack: Math.round(38 * per),
-    oral: Math.round(14 * per),
-    topical: Math.round(8 * per),
-    obs: { 嘔吐: Math.round(3 * per), 頻尿: Math.round(2 * per), 咳嗽: Math.round(5 * per) },
+    snack: Math.round((isDog ? 52 : 38) * per),
+    oral: Math.round((isDog ? 4 : 14) * per),
+    topical: Math.round((isDog ? 2 : 8) * per),
+    obs: isDog
+      ? { 嘔吐: Math.round(1 * per), 頻尿: 0, 咳嗽: Math.round(2 * per) }
+      : { 嘔吐: Math.round(3 * per), 頻尿: Math.round(2 * per), 咳嗽: Math.round(5 * per) },
     weights,
   }
 }
@@ -212,8 +218,8 @@ function WeightChart({ data, daysInMonth, month }) {
   )
 }
 
-function MonthlyReport({ obsKeys, onClose }) {
-  const [r] = useState(buildMonthlyFake)
+function MonthlyReport({ pet, obsKeys, onClose }) {
+  const [r] = useState(() => buildMonthlyFake(pet))
   const first = r.weights[0].kg
   const last = r.weights[r.weights.length - 1].kg
   const diff = last - first
@@ -222,7 +228,7 @@ function MonthlyReport({ obsKeys, onClose }) {
     <div className="confirm-backdrop" onClick={onClose}>
       <div className="report" role="dialog" aria-modal="true" aria-label="當月匯表" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="report-close" onClick={onClose} aria-label="關閉">✕</button>
-        <h2 className="report-title">{r.month}月匯表</h2>
+        <h2 className="report-title">{pet.name}・{r.month}月匯表</h2>
         <p className="report-range">
           {r.month}/1 – {r.month}/{r.today}
           {r.today < r.daysInMonth && '・統計至今日'}
@@ -299,37 +305,52 @@ function AnnouncementBar() {
   )
 }
 
-export default function Records() {
-  const [s, setS] = useState(loadState)
+// 一隻寵物的大框框：每隻各自保存當天的紀錄
+function PetSheet({ pet, onConfirm, onReport }) {
+  const [s, setS] = useState(() => loadState(pet))
   const [newObs, setNewObs] = useState('')
-  const [confirm, setConfirm] = useState(null) // { message, action }
-  const [showReport, setShowReport] = useState(false)
   const set = (patch) => setS((prev) => ({ ...prev, ...patch }))
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
+      localStorage.setItem(storageKeyOf(pet), JSON.stringify(s))
     } catch {
       /* 儲存失敗時忽略 */
     }
-  }, [s])
+  }, [pet, s])
 
-  const eaten = s.meals.filter(Boolean).length
-  const lastEaten = s.meals.lastIndexOf(true)
   const nextMeal = s.meals.indexOf(false)
+  const mealNames = MEAL_NAMES.slice(0, pet.meals)
 
   const askMeal = () => {
     if (nextMeal < 0) return
-    setConfirm({
-      message: `${PET.name} 吃完${MEAL_NAMES[nextMeal]}了嗎？`,
+    onConfirm({
+      species: pet.species,
+      message: `${pet.name} 吃完${mealNames[nextMeal]}了嗎？`,
       action: () => setS((p) => ({ ...p, meals: p.meals.map((v, j) => (j === nextMeal ? true : v)) })),
     })
   }
 
   const askSnack = () =>
-    setConfirm({
-      message: `${PET.name} 又吃了一次零食？`,
+    onConfirm({
+      species: pet.species,
+      message: `${pet.name} 又吃了一次零食？`,
       action: () => setS((p) => ({ ...p, snack: p.snack + 1 })),
+    })
+
+  // 語音解析結果填入：次數 0 表示「沒有」，會取消標記
+  const applyVoice = ({ obs, ...rest }) =>
+    setS((p) => {
+      const next = { ...p, ...rest }
+      if (obs) {
+        next.obs = { ...p.obs }
+        next.obsCount = { ...p.obsCount }
+        for (const [k, n] of Object.entries(obs)) {
+          next.obs[k] = n > 0
+          next.obsCount[k] = n > 0 ? String(n) : ''
+        }
+      }
+      return next
     })
 
   const addObs = () => {
@@ -340,36 +361,19 @@ export default function Records() {
   }
 
   return (
-    <div className="records">
-      {/* 背景色塊 */}
-      <div className="blobs" aria-hidden="true">
-        <svg className="blob blob-coral" viewBox="0 0 200 160"><path d="M0 0h200c-6 40-40 52-78 58-44 7-58 44-82 86C28 162 10 160 0 156z" /></svg>
-        <svg className="blob blob-yellow" viewBox="0 0 200 140"><path d="M0 0h200v128c-30 18-62 0-80-24C98 76 60 70 30 44 12 28 2 14 0 0z" /></svg>
-        <svg className="blob blob-blue" viewBox="0 0 120 220"><path d="M120 0v220H40c-24-24-6-56 18-80 22-22 4-56 20-90C88 28 104 8 120 0z" /></svg>
-        <svg className="blob blob-green" viewBox="0 0 200 110"><path d="M0 0c30 10 52 40 86 54 34 14 80 14 114 56H0z" /></svg>
-        <DogPaw className="paw-deco p1" />
-        <CatPaw className="paw-deco p2" />
-        <CatPaw className="paw-deco p3" />
-      </div>
-
-      <header className="top">
-        <h1 className="page-title">日常</h1>
-        <AnnouncementBar />
-      </header>
-
       <section className="sheet">
         {/* 基本資料（由設定分頁帶入） */}
         <div className="profile">
           <div className="photo">
-            {PET.photo ? <img src={PET.photo} alt={PET.name} /> : <span className="photo-empty">photo</span>}
+            {pet.photo ? <img src={pet.photo} alt={pet.name} /> : <span className="photo-empty">photo</span>}
           </div>
           <div className="profile-info">
             <div className="name-row">
-              <p className="pet-name">{PET.name}</p>
+              <p className="pet-name">{pet.name}</p>
               <p className="birthday">
                 <span aria-hidden="true">🎂</span>
-                <span className="birthday-date">{PET.birthday.replaceAll('-', '.')}</span>
-                <span className="stage">{stageOf(PET.birthday)}</span>
+                <span className="birthday-date">{pet.birthday.replaceAll('-', '.')}</span>
+                <span className="stage">{stageOf(pet.birthday, pet.species)}</span>
               </p>
             </div>
             <div className="mood">
@@ -401,22 +405,22 @@ export default function Records() {
             className={`stamp ${nextMeal < 0 ? 'is-done' : ''}`}
             onClick={askMeal}
             disabled={nextMeal < 0}
-            aria-label={nextMeal < 0 ? '三餐都吃完了' : `記錄${MEAL_NAMES[nextMeal]}`}
+            aria-label={nextMeal < 0 ? '今天的餐都吃完了' : `記錄${mealNames[nextMeal]}`}
           >
-            {eaten ? (
+            {nextMeal < 0 ? (
               <>
-                <span>第{ZH_NUM[lastEaten]}餐</span>
+                <span>今天</span>
                 <span>吃飽了</span>
               </>
             ) : (
               <>
-                <span>還沒</span>
-                <span>吃飯</span>
+                <span>吃飽了</span>
+                <span>點我!</span>
               </>
             )}
           </button>
           <ul className="meal-list">
-            {MEAL_NAMES.map((m, i) => (
+            {mealNames.map((m, i) => (
               <li key={m} className={`meal-row ${s.meals[i] ? 'on' : ''}`}>
                 {m}
                 <span className="mark">{s.meals[i] ? '✓' : '✕'}</span>
@@ -438,9 +442,21 @@ export default function Records() {
         {/* 健康 */}
         <div className="health">
           <div className="health-left">
-            <h2 className="health-title">
-              今天的<span className="health-name">{PET.name}</span>......
-            </h2>
+            <div className="health-head">
+              <h2 className="health-title">
+                今天的<span className="health-name">{pet.name}</span>......
+              </h2>
+              <VoiceButton
+                title={`用說的記錄今天的${pet.name}`}
+                examples={[
+                  pet.species === 'dog' ? '今天吐了兩次，吃藥一次，體重八點四公斤' : '吐了一次，咳嗽兩次，體重四點二公斤',
+                  '擦藥兩次，拉肚子一次，心情普通',
+                  '今天沒有吐，心情很好',
+                ]}
+                parse={(t) => parseDaily(t, Object.keys(s.obs))}
+                onApply={applyVoice}
+              />
+            </div>
             <div className="line-item">
               <span>內服藥</span>
               <Counter value={s.oral} onChange={(v) => set({ oral: v })} />
@@ -460,7 +476,7 @@ export default function Records() {
               />
               <span>kg</span>
             </label>
-            <button type="button" className="report-btn" onClick={() => setShowReport(true)}>
+            <button type="button" className="report-btn" onClick={() => onReport(pet, Object.keys(s.obs))}>
               當月匯表
             </button>
           </div>
@@ -524,12 +540,105 @@ export default function Records() {
           <p className="weather-note">★ {weather.note}</p>
         </div>
       </section>
+  )
+}
 
-      {showReport && <MonthlyReport obsKeys={Object.keys(s.obs)} onClose={() => setShowReport(false)} />}
+export default function Records() {
+  const [page, setPage] = useCurrentPet() // 與紀錄頁同步
+  const [drag, setDrag] = useState(0) // 手指拖曳中的位移（px）
+  const [confirm, setConfirm] = useState(null) // { message, species, action }
+  const [report, setReport] = useState(null) // { pet, obsKeys }
+  const touch = useRef(null)
+
+  const goTo = (i) => setPage(i)
+
+  // 左右滑動切換寵物；先判斷方向，垂直滑動時不干擾頁面捲動
+  const onTouchStart = (e) => {
+    const t = e.touches[0]
+    touch.current = { x: t.clientX, y: t.clientY, axis: null }
+  }
+  const onTouchMove = (e) => {
+    const st = touch.current
+    if (!st) return
+    const t = e.touches[0]
+    const dx = t.clientX - st.x
+    const dy = t.clientY - st.y
+    if (!st.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) st.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+    if (st.axis !== 'x') return
+    const atEdge = (page === 0 && dx > 0) || (page === PETS.length - 1 && dx < 0)
+    setDrag(atEdge ? dx / 4 : dx) // 第一頁 / 最後一頁拉不動，給一點彈性
+  }
+  const onTouchEnd = () => {
+    const st = touch.current
+    if (st?.axis === 'x' && Math.abs(drag) > 60) goTo(page + (drag < 0 ? 1 : -1))
+    setDrag(0)
+    touch.current = null
+  }
+
+  return (
+    <div className="records">
+      {/* 背景色塊 */}
+      <div className="blobs" aria-hidden="true">
+        <svg className="blob blob-coral" viewBox="0 0 200 160"><path d="M0 0h200c-6 40-40 52-78 58-44 7-58 44-82 86C28 162 10 160 0 156z" /></svg>
+        <svg className="blob blob-yellow" viewBox="0 0 200 140"><path d="M0 0h200v128c-30 18-62 0-80-24C98 76 60 70 30 44 12 28 2 14 0 0z" /></svg>
+        <svg className="blob blob-blue" viewBox="0 0 120 220"><path d="M120 0v220H40c-24-24-6-56 18-80 22-22 4-56 20-90C88 28 104 8 120 0z" /></svg>
+        <svg className="blob blob-green" viewBox="0 0 200 110"><path d="M0 0c30 10 52 40 86 54 34 14 80 14 114 56H0z" /></svg>
+        <DogPaw className="paw-deco p1" />
+        <CatPaw className="paw-deco p2" />
+        <CatPaw className="paw-deco p3" />
+      </div>
+
+      <header className="top">
+        <h1 className="page-title">
+          <span className="page-date">{new Date().getMonth() + 1}/{new Date().getDate()}</span>
+          <span className="page-weekday">週{'日一二三四五六'[new Date().getDay()]}</span>
+        </h1>
+        <AnnouncementBar />
+      </header>
+
+      <div
+        className="pet-pager"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
+      >
+        <div
+          className="pet-track"
+          style={{
+            transform: `translateX(calc(${-page * 100}% + ${drag}px))`,
+            transition: drag ? 'none' : undefined,
+          }}
+        >
+          {PETS.map((p, i) => (
+            <div key={p.id} className="pet-slide" aria-hidden={i !== page} inert={i !== page}>
+              <PetSheet pet={p} onConfirm={setConfirm} onReport={(pet, obsKeys) => setReport({ pet, obsKeys })} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <nav className="pet-dots" aria-label="切換寵物">
+        {PETS.map((p, i) => (
+          <button
+            key={p.id}
+            type="button"
+            className={i === page ? 'on' : ''}
+            onClick={() => goTo(i)}
+            aria-label={`第 ${i + 1} 頁：${p.name}`}
+            aria-current={i === page ? 'page' : undefined}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </nav>
+
+      {report && <MonthlyReport pet={report.pet} obsKeys={report.obsKeys} onClose={() => setReport(null)} />}
 
       {confirm && (
         <ConfirmDialog
           message={confirm.message}
+          species={confirm.species}
           onCancel={() => setConfirm(null)}
           onOk={() => {
             confirm.action()

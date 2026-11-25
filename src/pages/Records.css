@@ -14,9 +14,10 @@
 
   position: relative;
   overflow: hidden;
-  margin: -20px -16px 0;
-  padding: 16px 16px 20px;
-  min-height: calc(100dvh - 58px);
+  /* 抵銷 .content 的上下內距，讓背景一路鋪到畫面最底（tabbar 後面） */
+  margin: -20px -16px -80px;
+  padding: 16px 16px calc(74px + env(safe-area-inset-bottom));
+  min-height: 100dvh;
   background: #fff;
   color: var(--ink);
   font-family: "LXGW WenKai TC", "Nunito", system-ui, sans-serif;
@@ -30,8 +31,27 @@
 .blob { position: absolute; display: block; }
 .blob-coral { top: 0; left: 0; width: 52%; fill: var(--coral); }
 .blob-yellow { top: 0; right: 0; width: 48%; fill: var(--yellow); }
-.blob-blue { bottom: 70px; right: 0; width: 22%; fill: var(--blue); }
-.blob-green { bottom: 0; left: 0; width: 55%; fill: var(--green); }
+.blob-blue { bottom: 120px; right: 0; width: 22%; fill: var(--blue); }
+.blob-green { bottom: 50px; left: 0; width: 55%; fill: var(--green); }
+
+/* ---------- 寵物切換（左右滑 / 分頁按鈕） ---------- */
+.pet-pager {
+  margin: -6px -16px 0; padding: 6px 0 10px; /* 留空間給卡片陰影 */
+  overflow: hidden; touch-action: pan-y;
+}
+.pet-track { display: flex; align-items: flex-start; transition: transform .35s cubic-bezier(.4, 0, .2, 1); }
+.pet-slide { flex: 0 0 100%; min-width: 0; padding: 0 16px; }
+@media (prefers-reduced-motion: reduce) {
+  .pet-track { transition: none; }
+}
+.pet-dots { display: flex; justify-content: center; gap: 8px; margin-top: 2px; }
+.pet-dots button {
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer; padding: 0;
+  border: 1.5px solid var(--line); background: #fff;
+  font-family: "Nunito", sans-serif; font-size: 11px !important; font-weight: 800; color: var(--ink) !important;
+  transition: background .2s, border-color .2s;
+}
+.pet-dots button.on { background: var(--coral); border-color: var(--coral); color: var(--ink-strong) !important; }
 .paw-deco { position: absolute; width: 20px; height: 20px; fill: #f7d5cc; }
 .p1 { left: 4px; top: 46%; transform: rotate(-20deg); }
 .p2 { left: 10px; top: 52%; transform: rotate(15deg); width: 16px; }
@@ -68,9 +88,11 @@
 .page-title {
   flex: none; position: relative; isolation: isolate;
   margin-left: 4px; padding: 0 2px;
-  font-size: 38px; font-weight: 400; line-height: 1; letter-spacing: .12em;
-  color: var(--ink-strong);
+  display: flex; align-items: baseline; gap: 6px;
+  font-weight: 400; line-height: 1; color: var(--ink-strong);
 }
+.page-date { font-family: "Nunito", sans-serif; font-size: 34px; font-weight: 800; letter-spacing: .02em; }
+.page-weekday { font-size: 15px; color: var(--ink); }
 /* 螢光筆般的珊瑚色底線 */
 .page-title::after {
   content: ""; position: absolute; left: -4px; right: 2px; bottom: 2px; height: 12px; z-index: -1;
@@ -226,6 +248,8 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .health-name { margin: 0 2px; }
+.health-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.health-head .health-title { min-width: 0; margin: 0; }
 .label-3 { width: 3em; text-align: justify; text-align-last: justify; }
 .line-item { display: flex; align-items: center; gap: 4px; font-size: 14px; color: var(--ink-strong); padding-left: 6px; }
 .weight input {

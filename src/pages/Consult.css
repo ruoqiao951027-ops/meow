@@ -1,0 +1,205 @@
+/* 諮詢：對話框 + 下方三個功能格（沿用 Pet Shop 粉彩風格） */
+.consult {
+  --coral: #fbc4b6;
+  --coral-soft: #fdebe5;
+  --yellow: #fde588;
+  --blue: #93e2f0;
+  --green: #c6ecb2;
+  --ink: #7b6569;
+  --ink-strong: #66525a;
+  --rose: #e48a96;
+  --line: #eadfd8;
+  --muted: #b9abab;
+  --tabbar: 56px;
+
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  margin: -20px -16px -80px; /* 抵銷 .content 的內距，整頁自己控制高度 */
+  padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom));
+  background: #fffdfb;
+  color: var(--ink);
+}
+.consult > *:not(.c-blobs) { position: relative; z-index: 1; }
+.consult button { font: inherit; color: inherit; }
+
+/* 背景色塊 */
+.c-blobs { position: absolute; inset: 0; pointer-events: none; }
+.c-blobs .blob { position: absolute; display: block; border-radius: 50%; }
+.c-blobs .b1 { top: -70px; left: -60px; width: 190px; height: 160px; background: var(--coral); border-radius: 0 0 60% 40%; }
+.c-blobs .b2 { top: -50px; right: -50px; width: 150px; height: 130px; background: var(--yellow); border-radius: 0 0 40% 70%; }
+.c-blobs .b3 { bottom: 210px; right: -40px; width: 80px; height: 110px; background: var(--blue); opacity: .6; }
+
+/* 上方：切換寵物 */
+.c-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 18px 16px 10px;
+}
+.c-pets {
+  display: flex; gap: 2px; padding: 3px;
+  background: #fff; border: 2px solid var(--ink); border-radius: 99px;
+}
+.c-pets button {
+  border: 0; border-radius: 99px; padding: 4px 14px; background: transparent; cursor: pointer;
+  font-size: 16px; color: var(--muted) !important; transition: background .2s, color .2s;
+}
+.c-pets button:first-child { font-family: "Great Vibes", cursive; font-size: 21px; padding-block: 1px; }
+.c-pets button.on { background: var(--coral); color: var(--ink-strong) !important; }
+.c-clear {
+  border: 1.5px solid var(--line); border-radius: 99px; padding: 4px 12px;
+  background: #fff; font-size: 12px !important; cursor: pointer;
+}
+
+/* 對話列表 */
+.c-list {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 6px 14px 14px;
+}
+.c-row { display: flex; gap: 8px; align-items: flex-start; }
+.c-row.me { justify-content: flex-end; }
+.c-avatar {
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--coral-soft); border: 1.5px solid var(--coral); font-size: 15px;
+}
+.c-bubble {
+  max-width: 82%; padding: 10px 13px; border-radius: 4px 16px 16px 16px;
+  background: #fff; border: 1.5px solid var(--line);
+  font-size: 14.5px; line-height: 1.65; color: var(--ink-strong); word-break: break-word;
+}
+.c-row.me .c-bubble { border-radius: 16px 4px 16px 16px; background: var(--coral); border-color: var(--coral); }
+.c-bubble.is-error { background: #fff4f2; border-color: #f4b8c4; color: #b35f6c; }
+.c-bubble p + p, .c-bubble p + ul, .c-bubble p + ol, .c-bubble ul + p, .c-bubble ol + p { margin-top: 6px; }
+.c-bubble ul, .c-bubble ol { padding-left: 1.3em; }
+.c-bubble li + li { margin-top: 3px; }
+.c-bubble strong, .c-bubble b { color: var(--ink-strong); font-weight: 800; }
+.c-pre { white-space: pre-wrap; }
+.c-h { margin-top: 10px !important; font-weight: 800; color: var(--rose); }
+.c-h:first-child { margin-top: 0 !important; }
+.c-urgency {
+  display: inline-flex; align-items: center; gap: 6px; margin-bottom: 4px;
+  padding: 4px 12px; border-radius: 99px; font-weight: 800; font-size: 14px;
+}
+.c-urgency.u-red { background: #ffe1e1; color: #c0392b; }
+.c-urgency.u-orange { background: #ffe9d6; color: #c0601b; }
+.c-urgency.u-yellow { background: #fff4c7; color: #9a7400; }
+.c-urgency.u-green { background: #e3f5d8; color: #4f8a35; }
+.c-imgs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.c-imgs img { width: 92px; height: 92px; object-fit: cover; border-radius: 10px; }
+.c-img-note { font-size: 12px; opacity: .8; }
+
+.c-typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
+.c-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--coral); animation: c-bounce 1.2s infinite ease-in-out; }
+.c-typing i:nth-child(2) { animation-delay: .15s; }
+.c-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes c-bounce { 0%, 80%, 100% { transform: translateY(0); opacity: .5; } 40% { transform: translateY(-5px); opacity: 1; } }
+
+.c-suggest { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding-left: 40px; }
+.c-suggest button {
+  max-width: 100%; padding: 6px 12px; border: 1.5px dashed var(--rose); border-radius: 14px;
+  background: #fff; font-size: 13px !important; text-align: left; cursor: pointer;
+}
+.c-suggest button:hover { background: var(--coral-soft); }
+
+/* 輸入列 */
+.c-composer { padding: 8px 12px; background: #fffdfb; border-top: 1px solid var(--line); }
+.c-attach { display: flex; gap: 6px; margin-bottom: 6px; }
+.c-attach button { position: relative; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 8px; overflow: hidden; cursor: pointer; }
+.c-attach img { width: 100%; height: 100%; object-fit: cover; }
+.c-attach span, .c-photo span {
+  position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(102, 82, 90, .75); color: #fff; font-size: 12px; line-height: 16px;
+}
+.c-input-row { display: flex; align-items: flex-end; gap: 6px; }
+.c-input-row textarea {
+  flex: 1; min-width: 0; max-height: 96px; resize: none; field-sizing: content;
+  padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 18px; outline: none;
+  background: #fff; font: inherit; font-size: 15px; line-height: 1.4; color: var(--ink-strong);
+}
+.c-input-row textarea:focus { border-color: var(--coral); }
+.c-input-row .vi-mic { margin-bottom: 5px; }
+.c-icon-btn { flex: none; display: grid; place-items: center; width: 34px; height: 36px; font-size: 19px; cursor: pointer; }
+.c-send {
+  flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%;
+  background: var(--rose); color: #fff !important; font-size: 15px !important; cursor: pointer;
+}
+.c-send:disabled { background: #e8dede; cursor: default; }
+.c-send.is-stop { background: var(--ink); font-size: 12px !important; }
+
+/* 三個功能格（類似官方帳號的圖文選單） */
+.c-tiles {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  padding: 8px 12px 10px; background: #fffdfb;
+}
+.c-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  min-height: 78px; padding: 8px 4px; border: 0; border-radius: 16px; cursor: pointer;
+  text-align: center; transition: transform .15s;
+}
+.c-tile:active:not(:disabled) { transform: scale(.96); }
+.c-tile:disabled { cursor: default; }
+.c-tile:disabled:not(.is-soon) { opacity: .6; }
+.c-tile.t-coral { background: var(--coral); }
+.c-tile.t-yellow { background: var(--yellow); }
+.c-tile.t-blue { background: #c9f0f7; }
+.c-tile.is-soon { border: 1.5px dashed #6cc6d6; background: #eefafc; }
+.c-tile-icon { font-size: 22px; line-height: 1.2; }
+.c-tile-title { font-weight: 800; font-size: 14px; color: var(--ink-strong); }
+.c-tile-sub { font-size: 10.5px; color: var(--ink); line-height: 1.3; }
+
+/* 份量計算：浮在畫面中間的視窗（和當月匯表同一種樣式）
+   視窗放在 body 底下，所以顏色變數要在這裡再定義一次 */
+.c-modal-backdrop {
+  --coral: #fbc4b6; --coral-soft: #fdebe5; --ink: #7b6569; --ink-strong: #66525a;
+  --rose: #e48a96; --line: #eadfd8; --muted: #b9abab;
+  position: fixed; inset: 0; z-index: 50;
+  display: grid; place-items: center; padding: 20px 16px;
+  background: rgba(102, 82, 90, .35);
+  animation: c-fade .2s ease;
+}
+.c-modal {
+  position: relative; width: min(370px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 20px 18px 18px; border-radius: 20px; background: #fff;
+  box-shadow: 0 10px 30px rgba(102, 82, 90, .25);
+  color: var(--ink); animation: c-pop .22s ease;
+}
+.c-modal button { font: inherit; color: inherit; }
+.c-modal-close {
+  position: absolute; top: 12px; right: 12px; width: 30px; height: 30px;
+  border: none; border-radius: 50%; background: #f8f1ee; cursor: pointer; font-size: 14px !important;
+}
+.c-modal-title { padding-right: 32px; font-size: 20px; font-weight: 800; color: var(--ink-strong); }
+.c-sheet-hint { margin-top: -6px; font-size: 13px; line-height: 1.5; }
+@keyframes c-fade { from { opacity: 0; } }
+@keyframes c-pop { from { opacity: 0; transform: translateY(12px) scale(.97); } }
+.c-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; font-size: 12.5px; }
+.c-field input, .c-field textarea, .c-field select {
+  width: 100%; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 10px; outline: none;
+  background: #fff; font: inherit; font-size: 14px; color: var(--ink-strong);
+}
+.c-field input:focus, .c-field textarea:focus, .c-field select:focus { border-color: var(--coral); }
+.c-field-row { display: flex; gap: 8px; }
+.c-photos { display: flex; gap: 6px; }
+.c-photo {
+  position: relative; display: grid; place-items: center; width: 60px; height: 60px; padding: 0;
+  border: 0; border-radius: 10px; overflow: hidden; cursor: pointer;
+}
+.c-photo img { width: 100%; height: 100%; object-fit: cover; }
+.c-photo-add { border: 1.5px dashed var(--muted); background: #f6f1ef; font-size: 22px; color: var(--ink); }
+.c-sheet-err { font-size: 13px; color: #c0392b; text-align: center; }
+.c-sheet-actions { display: flex; justify-content: center; gap: 12px; margin-top: 4px; }
+.c-btn, .c-btn-ghost { min-width: 104px; padding: 9px 18px; border-radius: 99px; font-weight: 700; cursor: pointer; }
+.c-btn { border: 0; background: var(--rose); color: #fff !important; }
+.c-btn-ghost { border: 1.5px solid var(--line); background: #fff; }
+
+/* 回答最後的提醒小字 */
+.c-note { margin-top: 10px !important; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 11.5px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .c-typing i { animation: none; opacity: .8; }
+  .c-modal-backdrop, .c-modal { animation: none; }
+}

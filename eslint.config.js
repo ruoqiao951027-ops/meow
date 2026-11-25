@@ -18,4 +18,9 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // 伺服器端程式（Vite 設定、/api/consult）在 Node 執行
+    files: ['vite.config.js', 'server/**/*.js'],
+    languageOptions: { globals: globals.node },
+  },
 ])

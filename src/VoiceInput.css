@@ -1,0 +1,144 @@
+/* 語音輸入：小麥克風按鈕 + 面板（沿用 Pet Shop 粉彩配色） */
+.vi-mic {
+  --vi-ink: #7b6569;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  padding: 0;
+  border: 1.5px solid #f4b8c4;
+  border-radius: 50%;
+  background: #fff;
+  color: #e48a96;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+}
+.vi-mic:hover { background: #fdebe5; }
+.vi-mic:active { transform: scale(0.92); }
+.vi-mic svg { width: 15px; height: 15px; }
+.vi-mic svg rect,
+.vi-big-mic svg rect { fill: currentColor; }
+.vi-mic svg path,
+.vi-big-mic svg path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+.vi-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  background: rgba(102, 82, 90, 0.35);
+  animation: vi-fade 0.2s ease;
+}
+.vi-panel {
+  width: min(100%, 480px);
+  max-height: 88dvh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  border-radius: 22px 22px 0 0;
+  background: #fffdfb;
+  color: #7b6569;
+  text-align: center;
+  animation: vi-up 0.25s ease;
+}
+.vi-title { margin: 0 0 12px; font-weight: 800; font-size: 17px; color: #66525a; }
+
+.vi-big-mic {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 50%;
+  background: #fbc4b6;
+  color: #fff;
+  cursor: pointer;
+}
+.vi-big-mic svg { width: 30px; height: 30px; }
+.vi-big-mic:disabled { background: #e8dede; cursor: default; }
+.vi-big-mic.on::before,
+.vi-big-mic.on::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid #fbc4b6;
+  animation: vi-pulse 1.6s ease-out infinite;
+}
+.vi-big-mic.on::after { animation-delay: 0.8s; }
+.vi-status { margin: 8px 0 10px; font-size: 13px; min-height: 1.4em; }
+
+.vi-text {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1.5px dashed #f2a395;
+  border-radius: 14px;
+  background: #fff;
+  color: #66525a;
+  font: inherit;
+  font-size: 15px;
+  resize: vertical;
+}
+.vi-text:focus { outline: 2px solid #fbc4b6; outline-offset: 1px; }
+
+.vi-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+  text-align: left;
+  font-size: 12px;
+}
+.vi-examples button {
+  padding: 4px 10px;
+  border: 1px solid #eadfd8;
+  border-radius: 999px;
+  background: #fff7e0;
+  color: #7b6569;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vi-result {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #eef9e8;
+  text-align: left;
+}
+.vi-result-tag { margin: 0 0 6px; font-size: 12px; font-weight: 800; color: #6a9a52; }
+.vi-empty { margin: 0; font-size: 13px; color: #b9abab; }
+.vi-result dl { margin: 0; display: grid; gap: 4px; }
+.vi-result dl > div { display: grid; grid-template-columns: 5.5em 1fr; gap: 8px; font-size: 14px; }
+.vi-result dt { color: #9a8689; }
+.vi-result dd { margin: 0; color: #66525a; font-weight: 700; word-break: break-word; }
+
+.vi-actions { display: flex; justify-content: center; gap: 12px; margin-top: 14px; }
+.vi-actions button {
+  min-width: 96px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.vi-ghost { border: 1.5px solid #eadfd8; background: #fff; color: #7b6569; }
+.vi-ok { border: 0; background: #e48a96; color: #fff; }
+.vi-ok:disabled { background: #e8dede; cursor: default; }
+
+@keyframes vi-fade { from { opacity: 0; } }
+@keyframes vi-up { from { transform: translateY(40px); opacity: 0; } }
+@keyframes vi-pulse { to { transform: scale(1.7); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vi-backdrop, .vi-panel { animation: none; }
+  .vi-big-mic.on::before, .vi-big-mic.on::after { animation: none; opacity: 0.5; transform: scale(1.2); }
+}
