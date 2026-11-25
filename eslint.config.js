@@ -20,7 +20,7 @@ export default defineConfig([
   },
   {
     // 伺服器端程式（Vite 設定、/api/consult）在 Node 執行
-    files: ['vite.config.js', 'server/**/*.js'],
+    files: ['vite.config.js', 'server/**/*.js', 'scripts/**/*.mjs'],
     languageOptions: { globals: globals.node },
   },
 ])

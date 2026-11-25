@@ -196,6 +196,35 @@
 .c-btn { border: 0; background: var(--rose); color: #fff !important; }
 .c-btn-ghost { border: 1.5px solid var(--line); background: #fff; }
 
+/* 推薦商品卡片 */
+.c-prods { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.c-prod { padding: 10px 11px; border: 1.5px solid var(--line); border-radius: 14px; background: #fffaf8; }
+.c-prod-head { display: flex; align-items: flex-start; gap: 8px; }
+.c-prod-icon {
+  flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px;
+  background: var(--coral-soft); font-size: 19px;
+}
+.c-prod-img {
+  flex: none; width: 56px; height: 56px; border-radius: 10px; object-fit: contain;
+  background: #fff; border: 1px solid var(--line);
+}
+.c-prod-title { flex: 1; min-width: 0; }
+.c-prod-name { font-weight: 800; font-size: 14px; line-height: 1.4; color: var(--ink-strong); }
+.c-prod-meta { font-size: 11.5px; color: var(--ink); margin-top: 1px !important; }
+.c-prod-rx { flex: none; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.c-prod-rx.rx-0 { background: #e3f5d8; color: #4f8a35; }
+.c-prod-rx.rx-1 { background: #ffe1e1; color: #c0392b; }
+.c-prod-rx.rx-2 { background: #fff4c7; color: #9a7400; }
+.c-prod-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.c-prod-tags span { padding: 1px 8px; border-radius: 99px; background: #fff; border: 1px solid var(--line); font-size: 11.5px; }
+.c-prod-buy { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.c-prod-size {
+  padding: 4px 10px; border-radius: 99px; background: var(--rose); color: #fff;
+  font-size: 12.5px; font-weight: 700; text-decoration: none;
+}
+.c-prod-size.is-out { background: #e8dede; color: var(--muted); }
+.c-prod-note { margin-top: 6px !important; font-size: 11px; color: var(--muted); }
+
 /* 回答最後的提醒小字 */
 .c-note { margin-top: 10px !important; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 11.5px; color: var(--muted); }
 
