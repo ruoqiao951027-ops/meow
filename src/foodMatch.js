@@ -85,11 +85,13 @@ export function candidatesText(pet, matched) {
   const lines = list.map(({ p, why }) => {
     const flags = [...p.flags].filter((f) => FLAG_LABEL[f]).map((f) => FLAG_LABEL[f]).join('、')
     const sizes = p.variants.filter((v) => !v.soldOut).map((v) => `${v.pack} NT$${v.price.toLocaleString()}`).join('／')
-    const features = p.features.slice(0, 3).map((t) => t.split(/[:：]/)[0].trim().slice(0, 20)).join('、')
-    return `- ${p.code}｜${speciesLabel(p.species)} ${p.name}｜${TYPE_LABEL[p.type]}｜功能：${p.tags.join('、') || '一般營養'}${features ? `｜官方特色：${features}` : ''}｜${rxLabel(p.rx)}｜代謝能：${p.kcal ? `${p.kcal} kcal/kg` : '未提供'}｜${nutritionText(p)}｜成分含：${flags}${p.proteinSource ? `｜主要蛋白質：${p.proteinSource}` : ''}｜規格：${sizes}${why.length ? `｜符合：${why.join('、')}` : ''}`
+    // 官方特色原文照抄（不截斷、不改寫），AI 只能引用這些文字描述商品
+    const features = p.features.length ? p.features.map((t) => `「${t}」`).join(' ') : '（官網未提供）'
+    const rx = p.rx === 1 ? '官網標示：處方食品，須遵照獸醫師指示餵食' : rxLabel(p.rx)
+    return `- ${p.code}｜${speciesLabel(p.species)} ${p.name}｜${TYPE_LABEL[p.type]}｜適用：${p.stageText}｜分類：${p.tags.join('、') || '一般營養'}｜${rx}｜官方特色原文：${features}｜代謝能：${p.kcal ? `${p.kcal} kcal/kg` : '未提供'}｜${nutritionText(p)}｜成分含：${flags}${p.proteinSource ? `｜主要蛋白質：${p.proteinSource}` : ''}｜規格：${sizes}${why.length ? `｜和紀錄相關的分類：${why.join('、')}` : ''}`
   })
   return [
-    `【候選商品】皇家寵物食品（台灣宅配通路，合作動物醫院限定），已依${pet.name}的物種、年齡、體型${avoid.length ? `與過敏（避開：${avoid.map((f) => FLAG_LABEL[f]).join('、')}）` : ''}篩選：`,
+    `【候選商品】皇家寵物食品（資料取自 Royal Canin 台灣官網商品頁；台灣宅配通路，合作動物醫院限定），App 已依${pet.name}的物種、年齡、體型${avoid.length ? `與過敏（避開：${avoid.map((f) => FLAG_LABEL[f]).join('、')}）` : ''}篩選：`,
     ...lines,
   ].join('\n')
 }

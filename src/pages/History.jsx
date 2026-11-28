@@ -3,6 +3,7 @@ import { PETS, historyKey, useCurrentPet } from '../petStore.js'
 import { DOG } from './historyDogData.js'
 import { BIRTHS, CHECKUPS, DISEASES, INJURIES, MEDS, OTHERS, SPAY, VACCINES, VISITS } from './historyCatData.js'
 import { VoiceButton } from '../VoiceInput.jsx'
+import Disclaimer from '../Disclaimer.jsx'
 import { parseDisease, parseInjury, parseMed, parseOther, parseVaccine, parseVisit } from '../voiceParse.js'
 import './History.css'
 
@@ -202,7 +203,7 @@ function CheckupVaccine() {
           </div>
         </div>
       ))}
-      <p className="h-ai-note">AI 判讀僅供參考，請以獸醫師診斷為準。</p>
+      <Disclaimer />
 
       <hr className="h-dash" />
 
@@ -331,7 +332,7 @@ function Visits() {
           </div>
         </div>
       ))}
-      <p className="h-ai-note">AI 建議僅供參考，請以獸醫師診斷為準。</p>
+      <Disclaimer />
     </>
   )
 }
@@ -758,6 +759,7 @@ function InjurySurgery() {
             </div>
           ),
       )}
+      {list.some((x) => x.advice?.length) && <Disclaimer />}
     </>
   )
 }

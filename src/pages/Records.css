@@ -210,6 +210,21 @@
   color: var(--ink-strong); font-family: "LXGW WenKai TC", sans-serif;
 }
 .confirm-paw { width: 28px; height: 28px; fill: var(--pink); }
+
+/* 每日簽到 */
+.checkin-icon { display: block; font-size: 30px; line-height: 1; }
+.checkin-sub { margin-top: 4px; font-size: 14px; color: var(--ink); }
+.checkin-gain { margin-top: 4px; font-size: 22px; font-weight: 800; color: #e48a96; }
+.checkin-bonus {
+  display: inline-block; margin-top: 6px; padding: 3px 12px; border-radius: 99px;
+  background: #fde588; font-size: 13px; font-weight: 700;
+}
+.checkin-points {
+  margin: 12px auto 0; padding: 8px 12px; border-radius: 12px;
+  background: #fff1ec; font-size: 14px;
+}
+.checkin-points b { font-size: 18px; color: var(--ink-strong); }
+.checkin-streak { margin-top: 6px; font-size: 12px; color: var(--ink); }
 .confirm-msg { margin-top: 6px; font-size: 17px; font-weight: 700; }
 .confirm-ok {
   display: block; margin: 16px auto 0; padding: 9px 36px;

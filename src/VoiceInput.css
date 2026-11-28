@@ -25,20 +25,24 @@
 .vi-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 60; /* 蓋過 tabbar（40） */
   display: grid;
-  align-items: end;
-  justify-items: center;
+  place-items: center;
+  padding: 20px 16px;
+  box-sizing: border-box;
   background: rgba(102, 82, 90, 0.35);
   animation: vi-fade 0.2s ease;
 }
+/* 浮在畫面中間（和份量計算、當月匯表同一種視窗），不會被 tabbar 或手機底部擋住 */
 .vi-panel {
-  width: min(100%, 480px);
-  max-height: 88dvh;
+  width: min(100%, 400px);
+  max-height: calc(100dvh - 40px);
   overflow-y: auto;
+  overscroll-behavior: contain;
   box-sizing: border-box;
-  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
-  border-radius: 22px 22px 0 0;
+  padding: 18px;
+  border-radius: 22px;
+  box-shadow: 0 10px 30px rgba(102, 82, 90, 0.25);
   background: #fffdfb;
   color: #7b6569;
   text-align: center;
@@ -135,7 +139,7 @@
 .vi-ok:disabled { background: #e8dede; cursor: default; }
 
 @keyframes vi-fade { from { opacity: 0; } }
-@keyframes vi-up { from { transform: translateY(40px); opacity: 0; } }
+@keyframes vi-up { from { transform: translateY(12px) scale(0.97); opacity: 0; } }
 @keyframes vi-pulse { to { transform: scale(1.7); opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
