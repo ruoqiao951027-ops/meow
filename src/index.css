@@ -17,3 +17,12 @@ body { font-family: system-ui, "Noto Sans TC", sans-serif; background: #f2efe9; 
 }
 .tab-icon { font-size: 20px; }
 .tab.active { color: #e07a3f; }
+
+/* 健康、營養建議的提示文字：要清楚好讀，不能做成不起眼的小字 */
+.disclaimer {
+  display: flex; gap: 6px; align-items: flex-start;
+  margin-top: 10px; padding: 8px 10px; border-radius: 10px;
+  background: #fff8dc; border-left: 4px solid #f0c040;
+  font-size: 12.5px; line-height: 1.55; color: #66525a; text-align: left;
+}
+.disclaimer-icon { flex: none; line-height: 1.4; }

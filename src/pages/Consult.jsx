@@ -4,7 +4,10 @@ import { PETS, useCurrentPet } from '../petStore.js'
 import { buildPetContext, latestWeight } from '../petContext.js'
 import { VoiceButton } from '../VoiceInput.jsx'
 import { candidatesText, matchFoods } from '../foodMatch.js'
-import { FLAG_LABEL, PRODUCTS, TYPE_LABEL, feedingText, findProduct, nutritionText, productUrl, rxLabel, speciesLabel } from '../data/royalCanin.js'
+import { DATA_DATE, FLAG_LABEL, PRODUCTS, TYPE_LABEL, feedingText, findProduct, nutritionText, productUrl, rxLabel, speciesLabel } from '../data/royalCanin.js'
+import { healthStats, healthStatsText, recentSnackAvg } from '../healthReport.js'
+import HealthCard from './HealthCard.jsx'
+import Disclaimer, { DISCLAIMER } from '../Disclaimer.jsx'
 import './Consult.css'
 
 // AI 回答最後一行「推薦商品：AN24、DR25」→ 拆出來顯示成商品卡片
@@ -60,7 +63,16 @@ function ProductCard({ code }) {
           ),
         )}
       </div>
-      {p.rx !== 0 && <p className="c-prod-note">處方相關商品，請先經獸醫師評估；此通路為合作動物醫院限定。</p>}
+      {p.features.length > 0 && (
+        <ul className="c-prod-feat">
+          {p.features.slice(0, 2).map((t) => <li key={t}>{t}</li>)}
+        </ul>
+      )}
+      {p.rx === 1 && <p className="c-prod-note">官網標示：處方食品，須遵照獸醫師指示餵食。</p>}
+      {p.rx === 2 && <p className="c-prod-note">官網未標示是否為處方食品，餵食前請先諮詢獸醫師。</p>}
+      <p className="c-prod-src">
+        商品名稱、成分與特色依 Royal Canin 台灣官網商品頁原文（{DATA_DATE}）。本 App 依寵物紀錄篩選，不代表 Royal Canin 或獸醫師之推薦或背書。
+      </p>
     </div>
   )
 }
@@ -222,30 +234,52 @@ async function streamConsult({ messages, petContext, signal, onText }) {
 }
 
 // ---------- 下方三個功能格 ----------
-function FeatureTiles({ onFood, onPortion, disabled }) {
+function FeatureTiles({ onFood, onPortion, onHealth, disabled }) {
   return (
     <nav className="c-tiles" aria-label="主要功能">
       <button type="button" className="c-tile t-coral" onClick={onFood} disabled={disabled}>
         <span className="c-tile-icon" aria-hidden="true">🥣</span>
         <span className="c-tile-title">飼料推薦</span>
-        <span className="c-tile-sub">依紀錄推薦皇家飼料</span>
+        <span className="c-tile-sub">依紀錄篩選皇家商品</span>
       </button>
       <button type="button" className="c-tile t-yellow" onClick={onPortion} disabled={disabled}>
         <span className="c-tile-icon" aria-hidden="true">⚖️</span>
         <span className="c-tile-title">份量計算</span>
         <span className="c-tile-sub">分析成分算每餐份量</span>
       </button>
-      <button type="button" className="c-tile t-blue is-soon" disabled aria-disabled="true">
-        <span className="c-tile-icon" aria-hidden="true">✨</span>
-        <span className="c-tile-title">敬請期待</span>
-        <span className="c-tile-sub">新功能規劃中</span>
+      <button type="button" className="c-tile t-blue" onClick={onHealth} disabled={disabled}>
+        <span className="c-tile-icon" aria-hidden="true">📊</span>
+        <span className="c-tile-title">健康週報</span>
+        <span className="c-tile-sub">分析趨勢＋看診小抄</span>
       </button>
     </nav>
   )
 }
 
 // ---------- 份量計算：輸入飼料資料 ----------
+// 常見零食的約略熱量（每份），使用者可以再改成包裝上的數字
+const SNACK_PRESETS = {
+  cat: [
+    { name: '肉泥（1 條 14 g）', kcal: 7 },
+    { name: '凍乾（1 小塊）', kcal: 3 },
+    { name: '貓餅乾（1 顆）', kcal: 1 },
+    { name: '小魚乾（1 g）', kcal: 3.5 },
+  ],
+  dog: [
+    { name: '雞肉條（1 條）', kcal: 15 },
+    { name: '潔牙骨（小型犬 1 支）', kcal: 60 },
+    { name: '凍乾（1 小塊）', kcal: 3 },
+    { name: '狗餅乾（1 片）', kcal: 10 },
+  ],
+}
+
 function PortionSheet({ pet, onSubmit, onClose }) {
+  const [snackAvg] = useState(() => recentSnackAvg(pet))
+  const [snacks, setSnacks] = useState([]) // { name, kcal, count }
+  const addSnack = (s) =>
+    setSnacks((list) => [...list, { name: s?.name ?? '', kcal: s ? String(s.kcal) : '', count: String(list.length ? 1 : Math.max(1, Math.round(snackAvg))) }])
+  const setSnack = (i, patch) => setSnacks((list) => list.map((s, j) => (j === i ? { ...s, ...patch } : s)))
+  const snackKcal = snacks.reduce((n, s) => n + (Number(s.kcal) || 0) * (Number(s.count) || 0), 0)
   const [f, setF] = useState(() => ({
     food: '',
     code: '', // 選了皇家商品時，送出會附上官方餵食表
@@ -297,6 +331,11 @@ function PortionSheet({ pet, onSubmit, onClose }) {
       `目標：${f.goal}`,
       `活動量：${f.activity}`,
       `一天餵 ${pet.meals} 餐`,
+      ...snacks
+        .filter((s) => s.name.trim())
+        .map((s) => `零食：${s.name.trim()}，每份約 ${s.kcal || '?'} kcal × 每天 ${s.count || 1} 份`),
+      snackKcal > 0 && `零食熱量合計：每天約 ${Math.round(snackKcal)} kcal`,
+      snackAvg > 0 && `日常頁紀錄：近 7 天平均每天吃零食 ${snackAvg} 次`,
       f.photos.length > 0 && `（附上 ${f.photos.length} 張包裝照片）`,
     ].filter(Boolean)
     let hidden = ''
@@ -323,7 +362,7 @@ function PortionSheet({ pet, onSubmit, onClose }) {
       <form className="c-modal" role="dialog" aria-modal="true" aria-label="份量計算" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <button type="button" className="c-modal-close" onClick={onClose} aria-label="關閉">✕</button>
         <h2 className="c-modal-title">⚖️ 份量計算</h2>
-        <p className="c-sheet-hint">輸入 {pet.name} 正在吃或想試的飼料，AI 會分析成分並算出每餐份量。</p>
+        <p className="c-sheet-hint">輸入 {pet.name} 正在吃或想試的飼料和零食，AI 會分析成分、扣掉零食熱量，算出每餐份量。</p>
         <label className="c-field">
           <span>從皇家商品選擇（選填，會自動帶入熱量與成分）</span>
           <select
@@ -405,6 +444,54 @@ function PortionSheet({ pet, onSubmit, onClose }) {
             </select>
           </label>
         </div>
+        <div className="c-field">
+          <span>零食（選填，會從每日熱量扣掉）</span>
+          {snackAvg > 0 && (
+            <p className="c-snack-hint">
+              📒 日常紀錄：{pet.name} 近 7 天平均每天吃 <b>{snackAvg}</b> 次零食
+            </p>
+          )}
+          {snacks.map((s, i) => (
+            <div key={i} className="c-snack-row">
+              <input className="c-snack-name" value={s.name} onChange={(e) => setSnack(i, { name: e.target.value })} placeholder="零食名稱" aria-label="零食名稱" />
+              <input
+                className="c-snack-num"
+                inputMode="decimal"
+                value={s.kcal}
+                onChange={(e) => setSnack(i, { kcal: e.target.value.replace(/[^\d.]/g, '') })}
+                placeholder="kcal"
+                aria-label="每份熱量 kcal"
+              />
+              <span>kcal ×</span>
+              <input
+                className="c-snack-num"
+                inputMode="numeric"
+                value={s.count}
+                onChange={(e) => setSnack(i, { count: e.target.value.replace(/\D/g, '') })}
+                aria-label="每天幾份"
+              />
+              <span>份/天</span>
+              <button type="button" className="c-snack-del" onClick={() => setSnacks((l) => l.filter((_, j) => j !== i))} aria-label="移除這個零食">
+                ×
+              </button>
+            </div>
+          ))}
+          <div className="c-snack-presets">
+            {SNACK_PRESETS[pet.species].map((p) => (
+              <button key={p.name} type="button" onClick={() => addSnack(p)}>
+                ＋ {p.name}
+              </button>
+            ))}
+            <button type="button" onClick={() => addSnack()}>
+              ＋ 自填
+            </button>
+          </div>
+          {snacks.length > 0 && (
+            <p className="c-snack-total">
+              零食每天約 <b>{Math.round(snackKcal)}</b> kcal・常見零食熱量為約略值，以包裝標示為準
+            </p>
+          )}
+        </div>
         {err && <p className="c-sheet-err" role="alert">{err}</p>}
         <div className="c-sheet-actions">
           <button type="button" className="c-btn-ghost" onClick={onClose}>取消</button>
@@ -456,13 +543,14 @@ function ConsultChat({ pet, petIdx, onSwitchPet }) {
   useEffect(() => () => abortRef.current?.abort(), [])
 
   // hidden：送給 AI 但不顯示在對話裡的補充資料（例如候選商品清單）
-  const send = async (text, imgs = [], hidden = '') => {
+  // meta：掛在 AI 回答上的額外資料（例如健康週報卡片）
+  const send = async (text, imgs = [], hidden = '', meta = {}) => {
     const t = text.trim()
     if ((!t && imgs.length === 0) || busy) return
     const userMsg = { id: uid(), role: 'user', text: t, images: imgs, ...(hidden && { hidden }) }
     const aid = uid()
     const history = [...messages, userMsg]
-    setMessages([...history, { id: aid, role: 'assistant', text: '', pending: true }])
+    setMessages([...history, { id: aid, role: 'assistant', text: '', pending: true, ...meta }])
     setInput('')
     setImages([])
     setBusy(true)
@@ -514,6 +602,29 @@ function ConsultChat({ pet, petIdx, onSwitchPet }) {
       [],
       candidatesText(pet, matched),
     )
+  }
+
+  // 健康週報：App 先算分數與趨勢（卡片），AI 再解讀並給下一步
+  const healthReport = () => {
+    const s = healthStats(pet)
+    send(`【健康週報】幫我看看${pet.name}最近 4 週的狀況。`, [], healthStatsText(s), { kind: 'health', report: s })
+  }
+
+  // 看診小抄：整理成 SOAP 格式給獸醫師
+  const soapNote = () => {
+    send(`【看診小抄】請把${pet.name}的狀況整理成 SOAP，方便獸醫師判讀。`, [], healthStatsText(healthStats(pet)), { kind: 'soap' })
+  }
+
+  const [copied, setCopied] = useState('')
+  const copyText = async (m) => {
+    const plain = m.text.replace(/\*\*/g, '').replace(/^#{1,4}\s*/gm, '')
+    try {
+      await navigator.clipboard.writeText(`${pet.name} 看診小抄\n\n${plain}\n\n${DISCLAIMER}`)
+      setCopied(m.id)
+      setTimeout(() => setCopied(''), 2000)
+    } catch {
+      setCopied('')
+    }
   }
 
   return (
@@ -572,7 +683,8 @@ function ConsultChat({ pet, petIdx, onSwitchPet }) {
           ) : (
             <div key={m.id} className="c-row bot">
               <span className="c-avatar" aria-hidden="true">🐾</span>
-              <div className={`c-bubble ${m.error ? 'is-error' : ''}`}>
+              <div className={`c-bubble ${m.error ? 'is-error' : ''} ${m.report ? 'is-wide' : ''}`}>
+                {m.report && <HealthCard r={m.report} />}
                 {m.pending && !m.text ? (
                   <span className="c-typing" aria-label="思考中">
                     <i />
@@ -582,7 +694,24 @@ function ConsultChat({ pet, petIdx, onSwitchPet }) {
                 ) : m.error ? (
                   <p>⚠️ {m.text}</p>
                 ) : (
-                  <AssistantBody text={m.text} />
+                  <>
+                    <AssistantBody text={m.text} />
+                    {!m.pending && !m.stopped && <Disclaimer />}
+                  </>
+                )}
+                {!m.pending && !m.error && m.kind === 'health' && (
+                  <div className="c-actions">
+                    <button type="button" onClick={soapNote} disabled={busy}>
+                      📋 產生看診小抄（SOAP）
+                    </button>
+                  </div>
+                )}
+                {!m.pending && !m.error && m.kind === 'soap' && (
+                  <div className="c-actions">
+                    <button type="button" onClick={() => copyText(m)}>
+                      {copied === m.id ? '已複製 ✓' : '📋 複製小抄'}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -648,7 +777,8 @@ function ConsultChat({ pet, petIdx, onSwitchPet }) {
         </div>
       </form>
 
-      {!focused && <FeatureTiles onFood={foodRecommend} onPortion={() => setPortion(true)} disabled={busy} />}
+      {/* 打字中、AI 回答中都先收起來，讓對話有更多空間 */}
+      {!focused && !busy && <FeatureTiles onFood={foodRecommend} onPortion={() => setPortion(true)} onHealth={healthReport} disabled={busy} />}
 
       {portion && (
         <PortionSheet

@@ -80,7 +80,13 @@ function VoicePanel({ title, examples, parse, onApply, onClose }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    // 開著的時候背後的頁面不捲動
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
   }, [onClose])
 
   const status = !SR

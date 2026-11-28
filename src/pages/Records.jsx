@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { PETS, useCurrentPet } from '../petStore.js'
 import { VoiceButton } from '../VoiceInput.jsx'
 import { parseDaily } from '../voiceParse.js'
+import { STREAK_DAYS, checkIn, getCheckin, markReminded, needsReminder } from '../checkin.js'
 import './Records.css'
 
 const todayKey = () => new Date().toISOString().slice(0, 10)
@@ -109,6 +110,37 @@ function ConfirmDialog({ message, species, onOk, onCancel }) {
         <Paw className="confirm-paw" />
         <p className="confirm-msg">{message}</p>
         <button type="button" className="confirm-ok" onClick={onOk} autoFocus>確認</button>
+      </div>
+    </div>
+  )
+}
+
+// 每日簽到：提醒（還沒簽）或完成（+10，連續 7 天再加碼）
+function CheckinDialog({ info, onClose }) {
+  const done = info.type === 'done'
+  const left = STREAK_DAYS - (info.streak % STREAK_DAYS)
+  return (
+    <div className="confirm-backdrop" onClick={onClose}>
+      <div className="confirm checkin" role="alertdialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <span className="checkin-icon" aria-hidden="true">{done ? '🎉' : '📅'}</span>
+        <p className="confirm-msg">{done ? '今日已簽到！' : '今日尚未簽到'}</p>
+        {done ? (
+          <>
+            <p className="checkin-gain">積分 +{info.gained}</p>
+            {info.bonus > 0 && <p className="checkin-bonus">連續簽到 {info.streak} 天，額外 +{info.bonus}！</p>}
+          </>
+        ) : (
+          <p className="checkin-sub">完成一次餵食確認以簽到</p>
+        )}
+        <p className="checkin-points">
+          目前簽到積分：<b>{info.points}</b>
+        </p>
+        {info.streak > 0 && (
+          <p className="checkin-streak">
+            已連續簽到 {info.streak} 天，再 {left} 天可額外 +30 積分
+          </p>
+        )}
+        <button type="button" className="confirm-ok" onClick={onClose} autoFocus>{done ? '太好了' : '知道了'}</button>
       </div>
     </div>
   )
@@ -306,7 +338,7 @@ function AnnouncementBar() {
 }
 
 // 一隻寵物的大框框：每隻各自保存當天的紀錄
-function PetSheet({ pet, onConfirm, onReport }) {
+function PetSheet({ pet, onConfirm, onReport, onMealDone }) {
   const [s, setS] = useState(() => loadState(pet))
   const [newObs, setNewObs] = useState('')
   const set = (patch) => setS((prev) => ({ ...prev, ...patch }))
@@ -327,7 +359,10 @@ function PetSheet({ pet, onConfirm, onReport }) {
     onConfirm({
       species: pet.species,
       message: `${pet.name} 吃完${mealNames[nextMeal]}了嗎？`,
-      action: () => setS((p) => ({ ...p, meals: p.meals.map((v, j) => (j === nextMeal ? true : v)) })),
+      action: () => {
+        setS((p) => ({ ...p, meals: p.meals.map((v, j) => (j === nextMeal ? true : v)) }))
+        onMealDone()
+      },
     })
   }
 
@@ -548,7 +583,19 @@ export default function Records() {
   const [drag, setDrag] = useState(0) // 手指拖曳中的位移（px）
   const [confirm, setConfirm] = useState(null) // { message, species, action }
   const [report, setReport] = useState(null) // { pet, obsKeys }
+  // 今天第一次打開、還沒簽到 → 先跳提醒
+  const [checkin, setCheckin] = useState(() => (needsReminder() ? { type: 'remind', ...getCheckin() } : null))
   const touch = useRef(null)
+
+  useEffect(() => {
+    if (checkin?.type === 'remind') markReminded()
+  }, [checkin])
+
+  // 當天第一次餵食確認 = 簽到
+  const onMealDone = () => {
+    const r = checkIn()
+    if (r) setCheckin({ type: 'done', ...r })
+  }
 
   const goTo = (i) => setPage(i)
 
@@ -612,7 +659,12 @@ export default function Records() {
         >
           {PETS.map((p, i) => (
             <div key={p.id} className="pet-slide" aria-hidden={i !== page} inert={i !== page}>
-              <PetSheet pet={p} onConfirm={setConfirm} onReport={(pet, obsKeys) => setReport({ pet, obsKeys })} />
+              <PetSheet
+                pet={p}
+                onConfirm={setConfirm}
+                onReport={(pet, obsKeys) => setReport({ pet, obsKeys })}
+                onMealDone={onMealDone}
+              />
             </div>
           ))}
         </div>
@@ -646,6 +698,8 @@ export default function Records() {
           }}
         />
       )}
+
+      {checkin && !confirm && <CheckinDialog info={checkin} onClose={() => setCheckin(null)} />}
     </div>
   )
 }
